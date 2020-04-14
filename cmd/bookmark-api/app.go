@@ -1,7 +1,17 @@
 package main
 
-import "github.com/khanhpdt/bookmark-api/internal/app/rest"
+import (
+	"log"
+
+	"github.com/khanhpdt/bookmark-api/internal/app/mongo"
+	"github.com/khanhpdt/bookmark-api/internal/app/rest"
+)
 
 func main() {
+	log.Println("Starting application...")
+
+	mongo.Init()
+
+	// call this last as it will block to listen to HTTP request
 	rest.Init()
 }

@@ -9,7 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Init initializes REST APIs.
 func Init() {
+	log.Println("Setting up REST APIs...")
+
 	r := gin.Default()
 
 	// - No origin allowed by default
