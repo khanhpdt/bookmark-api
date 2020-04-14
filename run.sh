@@ -1,3 +1,2 @@
 #!/bin/bash
-cd src/
-go run app.go
+go run ./cmd/bookmarkapi.go

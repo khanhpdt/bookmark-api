@@ -1,4 +1,4 @@
-package main
+package rest
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+func Init() {
 	r := gin.Default()
 
 	// - No origin allowed by default
