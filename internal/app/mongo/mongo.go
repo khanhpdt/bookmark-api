@@ -13,7 +13,10 @@ import (
 
 var client *mongo.Client
 
-const mongoAddress = "localhost:27017"
+const (
+	mongoAddress = "localhost:27017"
+	dbName = "bookmarkapi"
+)
 
 // Init initializes connection to mongodb.
 func Init() {
@@ -35,4 +38,9 @@ func Init() {
 	}
 
 	log.Printf("Successfully connected to mongodb at %s", mongoAddress)
+}
+
+// FileColl returns the 'file' collection
+func FileColl() *mongo.Collection {
+	return client.Database(dbName).Collection("file")
 }

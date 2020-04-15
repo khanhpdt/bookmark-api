@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
+	"github.com/khanhpdt/bookmark-api/internal/app/repo/filerepo"
 )
 
 // Init initializes REST APIs.
@@ -25,26 +27,23 @@ func Init() {
 
 	r.MaxMultipartMemory = 8 << 20 // 8 MB (default is 32 MB)
 
-	r.POST("/upload", func(c *gin.Context) {
-		file, err := c.FormFile("file")
-
-		if err != nil {
-			c.String(http.StatusBadRequest, fmt.Sprintf("Error receiving file: %s", err.Error()))
-			return
-		}
-
-		filePath := fmt.Sprintf("/tmp/%s", file.Filename)
-
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			errMsg := fmt.Sprintf("Error saving file to %s: %s", filePath, err.Error())
-			log.Printf(errMsg)
-			c.String(http.StatusBadRequest, errMsg)
-			return
-		}
-
-		log.Printf("Saved file %s.", filePath)
-		c.String(http.StatusOK, fmt.Sprintf("File %sfile uploaded.", file.Filename))
-	})
+	r.POST("/upload", uploadFile)
 
 	r.Run(":8081") // listen and serve on 0.0.0.0:8081
+}
+
+func uploadFile(c *gin.Context) {
+	file, err := c.FormFile("file")
+
+	if err != nil {
+		c.String(http.StatusBadRequest, fmt.Sprintf("Error receiving file: %s", err.Error()))
+		return
+	}
+
+	if err := filerepo.SaveUploadedFile(file); err != nil {
+		c.String(http.StatusBadRequest, fmt.Sprintf("Error saving file %s", file.Filename))
+		return
+	}
+
+	c.String(http.StatusOK, fmt.Sprintf("Uploaded file %s.", file.Filename))
 }
