@@ -22,7 +22,7 @@ func Init() {
 	// - Credentials share disabled
 	// - Preflight requests cached for 12 hours
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:8080"} // for development
+	config.AllowOrigins = []string{"http://localhost:3000"} // for development
 	r.Use(cors.New(config))
 
 	r.MaxMultipartMemory = 8 << 20 // 8 MB (default is 32 MB)
