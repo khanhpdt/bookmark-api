@@ -33,17 +33,18 @@ func Init() {
 }
 
 func uploadFile(c *gin.Context) {
-	file, err := c.FormFile("file")
-
+	form, err := c.MultipartForm()
+	
 	if err != nil {
-		c.String(http.StatusBadRequest, fmt.Sprintf("Error receiving file: %s", err.Error()))
+		c.String(http.StatusBadRequest, fmt.Sprintf("Error receiving files: %s", err.Error()))
 		return
 	}
 
-	if err := filerepo.SaveUploadedFile(file); err != nil {
-		c.String(http.StatusBadRequest, fmt.Sprintf("Error saving file %s", file.Filename))
+	files := form.File["files"]
+	if errs := filerepo.SaveUploadedFiles(files); len(errs) > 0 {
+		c.String(http.StatusBadRequest, fmt.Sprintf("Error saving files."))
 		return
 	}
 
-	c.String(http.StatusOK, fmt.Sprintf("Uploaded file %s.", file.Filename))
+	c.String(http.StatusOK, fmt.Sprintf("Uploaded %d files.", len(files)))
 }

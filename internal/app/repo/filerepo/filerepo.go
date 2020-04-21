@@ -14,20 +14,30 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// SaveUploadedFile writes file to the given path.
-func SaveUploadedFile(f *multipart.FileHeader) error {
-	fn := strings.ToLower(strings.ReplaceAll(f.Filename, " ", "_"))
-	filePath := fmt.Sprintf("/tmp/%s", fn)
+// SaveUploadedFiles saves files to disk and database.
+func SaveUploadedFiles(fs []*multipart.FileHeader) []error {
+	errs := make([]error, 0, len(fs))
 
-	if err := saveFileToDisk(f, filePath); err != nil {
-		return err
+	for _, f := range fs {
+		fn := strings.ToLower(strings.ReplaceAll(f.Filename, " ", "_"))
+		filePath := fmt.Sprintf("/tmp/%s", fn)
+
+		if err := saveFileToDisk(f, filePath); err != nil {
+			log.Printf("Error saving file %s to disk.", f.Filename)
+			errs = append(errs, err)
+			continue
+		}
+
+		if err := saveFileDocument(f.Filename, filePath); err != nil {
+			log.Printf("Error saving file %s to database.", f.Filename)
+			errs = append(errs, err)
+			continue
+		}
+
+		log.Printf("Saved file %s to %s.", f.Filename, filePath)
 	}
 
-	if err := saveFileDocument(f.Filename, filePath); err != nil {
-		return err
-	}
-
-	return nil
+	return errs
 }
 
 func saveFileToDisk(f *multipart.FileHeader, filePath string) error {
@@ -48,7 +58,6 @@ func saveFileToDisk(f *multipart.FileHeader, filePath string) error {
 		return err
 	}
 
-	log.Printf("Saved file %s.", filePath)
 	return nil
 }
 
