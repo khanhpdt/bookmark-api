@@ -118,11 +118,11 @@ func checkIndexExist(index string) (bool, error) {
 }
 
 // Index indexes the document to the index.
-func Index(index, id, body string) error {
+func Index(index, id string, body []byte) error {
 	req := esapi.IndexRequest{
 		Index:      index,
 		DocumentID: id,
-		Body:       strings.NewReader(body),
+		Body:       bytes.NewReader(body),
 	}
 
 	ctx, cancel := defaultContext()
@@ -131,7 +131,7 @@ func Index(index, id, body string) error {
 	res, err := req.Do(ctx, es)
 
 	if err != nil {
-		log.Printf("ERROR indexing document %s to index %s: %s", id, index, err)
+		log.Printf("Error indexing document %s to index %s: %s", id, index, err)
 		return err
 	}
 	defer res.Body.Close()
