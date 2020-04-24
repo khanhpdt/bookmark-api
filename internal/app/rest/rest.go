@@ -42,6 +42,10 @@ func uploadFile(c *gin.Context) {
 
 	files := form.File["files"]
 	if errs := filerepo.SaveUploadedFiles(files); len(errs) > 0 {
+		log.Printf("Got %d errors when saving %d files.", len(errs), len(files))
+		for _, err := range errs {
+			log.Print(err)
+		}
 		c.String(http.StatusBadRequest, fmt.Sprintf("Error saving files."))
 		return
 	}

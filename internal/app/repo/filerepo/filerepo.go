@@ -26,14 +26,12 @@ func SaveUploadedFiles(fs []*multipart.FileHeader) []error {
 		filePath := fmt.Sprintf("/tmp/%s", fn)
 
 		if err := saveFileToDisk(f, filePath); err != nil {
-			log.Printf("Error saving file %s to disk.", f.Filename)
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("Error saving file %s to disk", f.Filename))
 			continue
 		}
 
 		if err := saveFileDocument(f.Filename, filePath); err != nil {
-			log.Printf("Error saving file %s to database.", f.Filename)
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("Error saving file %s to database", f.Filename))
 			continue
 		}
 
@@ -72,20 +70,17 @@ func saveFileDocument(fileName, filePath string) error {
 
 	_, err := mongo.FileColl().InsertOne(ctx, bson.M{"_id": id, "name": fileName, "path": filePath})
 	if err != nil {
-		log.Printf("Error saving doc to db: %s", err)
-		return err
+		return fmt.Errorf("Error saving doc to db: %s", err)
 	}
 
 	elsDoc := FileDoc{Name: fileName, Path: filePath}
 	payload, err := json.Marshal(&elsDoc)
 	if err != nil {
-		log.Printf("Error marshaling doc: %s", err)
-		return err
+		return fmt.Errorf("Error marshaling doc: %s", err)
 	}
 
 	if err := els.Index("file", id.Hex(), payload); err != nil {
-		log.Printf("Error indexing doc: %s", err)
-		return err
+		return fmt.Errorf("Error indexing doc: %s", err)
 	}
 
 	return nil
