@@ -3,6 +3,7 @@ package els
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -137,4 +138,65 @@ func Index(index, id string, body []byte) error {
 	defer res.Body.Close()
 
 	return nil
+}
+
+// Search searches from the given index using the given body as search request.
+func Search(index string, body []byte) (*SearchResult, error) {
+	req := esapi.SearchRequest{
+		Index: []string{index},
+		Body:  bytes.NewReader(body),
+	}
+
+	ctx, cancel := defaultContext()
+	defer cancel()
+
+	res, err := req.Do(ctx, es)
+
+	if err != nil {
+		log.Printf("Error searching from index %s: %s", index, err)
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		var e map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("[%s] %s: %s", res.Status(), e["error"].(map[string]interface{})["type"], e["error"].(map[string]interface{})["reason"])
+	}
+
+	var sResponse searchResponse
+	if err := json.NewDecoder(res.Body).Decode(&sResponse); err != nil {
+		return nil, fmt.Errorf("Error decoding search response: %s", err)
+	}
+
+	var searchResult = SearchResult{Total: sResponse.Hits.Total.Value, Hits: make([]*Hit, 0, len(sResponse.Hits.Hits))}
+	for _, h := range sResponse.Hits.Hits {
+		hit := Hit{ID: h.ID, Source: h.Source} // cannot reuse &h and must make a new struct here
+		searchResult.Hits = append(searchResult.Hits, &hit)
+	}
+	
+	return &searchResult, nil
+}
+
+// Hit represents a search hit from ELS.
+type Hit struct {
+	ID     string          `json:"_id"`
+	Source json.RawMessage `json:"_source"`
+}
+
+// SearchResult contains result of searching from ELS.
+type SearchResult struct {
+	Total int
+	Hits  []*Hit
+}
+
+type searchResponse struct {
+	Hits struct {
+		Total struct {
+			Value int
+		}
+		Hits []Hit
+	}
 }

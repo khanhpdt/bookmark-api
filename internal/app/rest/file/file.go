@@ -1,11 +1,13 @@
 package file
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/khanhpdt/bookmark-api/internal/app/els"
 	"github.com/khanhpdt/bookmark-api/internal/app/repo/filerepo"
 )
 
@@ -14,6 +16,7 @@ func Setup(r *gin.Engine) {
 	log.Printf("Setting up /files APIs...")
 
 	r.POST("/files/upload", uploadFile)
+	r.POST("/files/search", searchFiles)
 }
 
 func uploadFile(c *gin.Context) {
@@ -35,4 +38,17 @@ func uploadFile(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, fmt.Sprintf("Uploaded %d files.", len(files)))
+}
+
+func searchFiles(c *gin.Context) {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(c.Request.Body)
+
+	res, err := els.Search("file", buf.Bytes())
+	if err != nil {
+		c.String(http.StatusInternalServerError, fmt.Sprintf("Error when searching: %s.", err))
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
 }
