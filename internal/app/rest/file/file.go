@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/khanhpdt/bookmark-api/internal/app/els"
 	"github.com/khanhpdt/bookmark-api/internal/app/repo/filerepo"
 )
 
@@ -44,9 +43,9 @@ func searchFiles(c *gin.Context) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(c.Request.Body)
 
-	res, err := els.Search("file", buf.Bytes())
+	res, err := filerepo.SearchFiles(buf.Bytes())
 	if err != nil {
-		c.String(http.StatusInternalServerError, fmt.Sprintf("Error when searching: %s.", err))
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 

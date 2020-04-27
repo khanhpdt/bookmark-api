@@ -73,7 +73,7 @@ func saveFileDocument(fileName, filePath string) error {
 		return fmt.Errorf("Error saving doc to db: %s", err)
 	}
 
-	elsDoc := FileDoc{Name: fileName, Path: filePath}
+	elsDoc := FileElsDoc{Name: fileName, Path: filePath}
 	payload, err := json.Marshal(&elsDoc)
 	if err != nil {
 		return fmt.Errorf("Error marshaling doc: %s", err)
@@ -86,8 +86,45 @@ func saveFileDocument(fileName, filePath string) error {
 	return nil
 }
 
-// FileDoc represents file document in ELS.
-type FileDoc struct {
+// FileElsDoc represents file document in ELS.
+type FileElsDoc struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
+}
+
+// FileSearchResult represents the result when searching files.
+type FileSearchResult struct {
+	List  []FileSearchDoc `json:"list"`
+	Total int             `json:"total"`
+}
+
+// FileSearchDoc represents a document in FileSearchResult.
+type FileSearchDoc struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// SearchFiles search files from ELS using the given query.
+func SearchFiles(query []byte) (*FileSearchResult, error) {
+	elsRes, err := els.Search("file", query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := FileSearchResult{Total: elsRes.Total, List: make([]FileSearchDoc, 0, len(elsRes.Hits))}
+	
+	for _, f := range elsRes.Hits {
+		file := FileSearchDoc{ID: f.ID}
+		
+		fileEls := new(FileElsDoc)
+		if err := json.Unmarshal(f.Source, fileEls); err != nil {
+			return nil, err
+		}
+		file.Name = fileEls.Name
+		
+		res.List = append(res.List, file)
+	}
+
+	return &res, nil
 }
