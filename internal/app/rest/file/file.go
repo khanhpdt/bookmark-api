@@ -1,7 +1,6 @@
 package file
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +15,7 @@ func Setup(r *gin.Engine) {
 
 	r.POST("/files/upload", uploadFile)
 	r.POST("/files/search", searchFiles)
+	r.GET("files/:fileID", findFile)
 }
 
 func uploadFile(c *gin.Context) {
@@ -40,14 +40,21 @@ func uploadFile(c *gin.Context) {
 }
 
 func searchFiles(c *gin.Context) {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(c.Request.Body)
-
-	res, err := filerepo.SearchFiles(buf.Bytes())
+	res, err := filerepo.SearchFiles(c.Request.Body)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, res)
+}
+
+func findFile(c *gin.Context) {
+	fileID := c.Param("fileID")
+	file, err := filerepo.FindByID(fileID)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, file)
 }

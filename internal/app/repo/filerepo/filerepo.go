@@ -73,7 +73,7 @@ func saveFileDocument(fileName, filePath string) error {
 		return fmt.Errorf("Error saving doc to db: %s", err)
 	}
 
-	elsDoc := FileElsDoc{Name: fileName, Path: filePath}
+	elsDoc := FileElsDoc{ID: id.Hex(), Name: fileName, Path: filePath}
 	payload, err := json.Marshal(&elsDoc)
 	if err != nil {
 		return fmt.Errorf("Error marshaling doc: %s", err)
@@ -88,43 +88,67 @@ func saveFileDocument(fileName, filePath string) error {
 
 // FileElsDoc represents file document in ELS.
 type FileElsDoc struct {
+	ID   string `json:"id"`
 	Name string `json:"name"`
 	Path string `json:"path"`
 }
 
 // FileSearchResult represents the result when searching files.
 type FileSearchResult struct {
-	List  []FileSearchDoc `json:"list"`
-	Total int             `json:"total"`
-}
-
-// FileSearchDoc represents a document in FileSearchResult.
-type FileSearchDoc struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	List  []*FileElsDoc `json:"list"`
+	Total int           `json:"total"`
 }
 
 // SearchFiles search files from ELS using the given query.
-func SearchFiles(query []byte) (*FileSearchResult, error) {
+func SearchFiles(query io.Reader) (*FileSearchResult, error) {
 	elsRes, err := els.Search("file", query)
 
 	if err != nil {
 		return nil, err
 	}
 
-	res := FileSearchResult{Total: elsRes.Total, List: make([]FileSearchDoc, 0, len(elsRes.Hits))}
-	
-	for _, f := range elsRes.Hits {
-		file := FileSearchDoc{ID: f.ID}
-		
-		fileEls := new(FileElsDoc)
-		if err := json.Unmarshal(f.Source, fileEls); err != nil {
-			return nil, err
-		}
-		file.Name = fileEls.Name
-		
-		res.List = append(res.List, file)
+	res := FileSearchResult{Total: elsRes.Total}
+
+	docs, err := convertHitsToDocs(elsRes.Hits)
+	if err != nil {
+		return nil, err
 	}
+	res.List = docs
 
 	return &res, nil
+}
+
+func convertHitsToDocs(hits []*els.Hit) ([]*FileElsDoc, error) {
+	docs := make([]*FileElsDoc, 0, len(hits))
+	for _, f := range hits {
+		doc := new(FileElsDoc)
+		if err := json.Unmarshal(f.Source, doc); err != nil {
+			return nil, err
+		}
+		docs = append(docs, doc)
+	}
+	return docs, nil
+}
+
+// FindByID finds doc from ELS with the given id.
+func FindByID(id string) (*FileElsDoc, error) {
+	query := fmt.Sprintf(`{ "query": { "ids": { "values": [ "%s" ] } } }`, id)
+	elsRes, err := els.Search("file", strings.NewReader(query))
+	if err != nil {
+		return nil, err
+	}
+
+	docs, err := convertHitsToDocs(elsRes.Hits)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("File %s not found", id)
+	}
+	if len(docs) > 1 {
+		return nil, fmt.Errorf("Duplicated files for id %s", id)
+	}
+
+	return docs[0], nil
 }

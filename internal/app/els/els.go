@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -51,6 +52,9 @@ func createIndexFile() {
 		},
 		"mappings": {
 			"properties": {
+				"id": {
+					"type": "keyword"
+				},
 				"name": {
 					"type":     "text",
 					"analyzer": "standard"
@@ -141,10 +145,10 @@ func Index(index, id string, body []byte) error {
 }
 
 // Search searches from the given index using the given body as search request.
-func Search(index string, body []byte) (*SearchResult, error) {
+func Search(index string, body io.Reader) (*SearchResult, error) {
 	req := esapi.SearchRequest{
 		Index: []string{index},
-		Body:  bytes.NewReader(body),
+		Body:  body,
 	}
 
 	ctx, cancel := defaultContext()
@@ -176,7 +180,7 @@ func Search(index string, body []byte) (*SearchResult, error) {
 		hit := Hit{ID: h.ID, Source: h.Source} // cannot reuse &h and must make a new struct here
 		searchResult.Hits = append(searchResult.Hits, &hit)
 	}
-	
+
 	return &searchResult, nil
 }
 
