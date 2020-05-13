@@ -1,6 +1,7 @@
 package file
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,7 +16,8 @@ func Setup(r *gin.Engine) {
 
 	r.POST("/files/upload", uploadFile)
 	r.POST("/files/search", searchFiles)
-	r.GET("files/:fileID", findFile)
+	r.GET("/files/:fileID", findFile)
+	r.GET("/files/:fileID/download", downloadFile)
 }
 
 func uploadFile(c *gin.Context) {
@@ -57,4 +59,25 @@ func findFile(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, file)
+}
+
+func downloadFile(c *gin.Context) {
+	fileID := c.Param("fileID")
+
+	file, err := filerepo.FindByID(fileID)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	osFile, size, err := filerepo.ReadFile(file)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer osFile.Close()
+
+	reader := bufio.NewReaderSize(osFile, 1000)
+
+	c.DataFromReader(http.StatusOK, size, "application/pdf", reader, nil)
 }

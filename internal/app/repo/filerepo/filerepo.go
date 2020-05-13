@@ -152,3 +152,18 @@ func FindByID(id string) (*FileElsDoc, error) {
 
 	return docs[0], nil
 }
+
+// ReadFile returns a buffered reader to the file
+func ReadFile(f *FileElsDoc) (*os.File, int64, error) {
+	file, err := os.Open(f.Path)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	finfo, err := file.Stat()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return file, finfo.Size(), nil
+}
