@@ -8,6 +8,7 @@ import (
 	"log"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,15 +24,15 @@ func SaveUploadedFiles(fs []*multipart.FileHeader) []error {
 
 	for _, f := range fs {
 		fn := strings.ToLower(strings.ReplaceAll(f.Filename, " ", "_"))
-		filePath := fmt.Sprintf("/tmp/%s", fn)
+		filePath := filepath.Join(getFileDir(), fn)
 
 		if err := saveFileToDisk(f, filePath); err != nil {
-			errs = append(errs, fmt.Errorf("Error saving file %s to disk", f.Filename))
+			errs = append(errs, fmt.Errorf("error saving file %s to disk", f.Filename))
 			continue
 		}
 
 		if err := saveFileDocument(f.Filename, filePath); err != nil {
-			errs = append(errs, fmt.Errorf("Error saving file %s to database", f.Filename))
+			errs = append(errs, fmt.Errorf("error saving file %s to database", f.Filename))
 			continue
 		}
 
@@ -39,6 +40,27 @@ func SaveUploadedFiles(fs []*multipart.FileHeader) []error {
 	}
 
 	return errs
+}
+
+func getFileDir() string {
+	homeDir, err := os.UserHomeDir()
+
+	if err != nil {
+		panic(fmt.Errorf("error getting user home directory: %s", err))
+	}
+
+	fileDir := filepath.Join(homeDir, "devbook-app", "files")
+
+	if _, e := os.Stat(fileDir); os.IsNotExist(e) {
+		err = os.MkdirAll(fileDir, os.ModePerm)
+		log.Printf("Created file directory at %s", fileDir)
+	}
+
+	if err != nil {
+		panic(fmt.Errorf("error getting file directory at %s: %s", fileDir, err))
+	}
+
+	return fileDir
 }
 
 func saveFileToDisk(f *multipart.FileHeader, filePath string) error {
