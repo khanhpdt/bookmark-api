@@ -17,6 +17,7 @@ func Setup(r *gin.Engine) {
 	r.POST("/files/upload", uploadFile)
 	r.POST("/files/search", searchFiles)
 	r.GET("/files/:fileID", findFile)
+	r.DELETE("/files/:fileID", deleteFile)
 	r.GET("/files/:fileID/download", downloadFile)
 }
 
@@ -59,6 +60,18 @@ func findFile(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, file)
+}
+
+func deleteFile(c *gin.Context) {
+	fileID := c.Param("fileID")
+
+	err := filerepo.DeleteByID(fileID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, "")
 }
 
 func downloadFile(c *gin.Context) {

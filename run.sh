@@ -1,2 +1,2 @@
 #!/bin/bash
-go run ./cmd/bookmark-api/app.go
+go run ./cmd/devbook-api/app.go

@@ -15,7 +15,7 @@ var client *mongo.Client
 
 const (
 	mongoAddress = "localhost:27017"
-	dbName       = "bookmark"
+	dbName       = "devbook"
 )
 
 // Init initializes connection to mongodb.

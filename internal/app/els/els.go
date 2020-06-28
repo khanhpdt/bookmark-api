@@ -163,11 +163,7 @@ func Search(index string, body io.Reader) (*SearchResult, error) {
 	defer res.Body.Close()
 
 	if res.IsError() {
-		var e map[string]interface{}
-		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("[%s] %s: %s", res.Status(), e["error"].(map[string]interface{})["type"], e["error"].(map[string]interface{})["reason"])
+		return nil, responseError(res)
 	}
 
 	var sResponse searchResponse
@@ -182,6 +178,14 @@ func Search(index string, body io.Reader) (*SearchResult, error) {
 	}
 
 	return &searchResult, nil
+}
+
+func responseError(res *esapi.Response) error {
+	var e map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+		return err
+	}
+	return fmt.Errorf("[%s] %s: %s", res.Status(), e["error"].(map[string]interface{})["type"], e["error"].(map[string]interface{})["reason"])
 }
 
 // Hit represents a search hit from ELS.
@@ -203,4 +207,24 @@ type searchResponse struct {
 		}
 		Hits []Hit
 	}
+}
+
+func Delete(index, id string) error {
+	req := esapi.DeleteRequest{Index: index, DocumentID: id}
+
+	ctx, cancel := defaultContext()
+	defer cancel()
+
+	res, err := req.Do(ctx, es)
+
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return responseError(res)
+	}
+
+	return nil
 }
