@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/khanhpdt/bookmark-api/internal/app/els"
+	filemodel "github.com/khanhpdt/bookmark-api/internal/app/model/file"
+	"github.com/khanhpdt/bookmark-api/internal/app/mongo"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"log"
 	"mime/multipart"
@@ -11,11 +16,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/khanhpdt/bookmark-api/internal/app/els"
-	"github.com/khanhpdt/bookmark-api/internal/app/mongo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // SaveUploadedFiles saves files to disk and database.
@@ -197,17 +197,79 @@ func DeleteByID(id string) error {
 	return nil
 }
 
+func UpdateByID(id string, update filemodel.UpdateRequest) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFunc()
+
+	_, err = mongo.FileColl().UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{"name": update.Name}})
+	if err != nil {
+		return err
+	}
+
+	doc, err := findMongoDoc(id)
+	if err != nil {
+		return err
+	}
+
+	var elsDoc = FileElsDoc{
+		ID:   doc.Id.Hex(),
+		Name: doc.Name,
+		Path: doc.Path,
+	}
+
+	elsDocBytes, err := json.Marshal(elsDoc)
+	if err != nil {
+		return err
+	}
+
+	err = els.Index("file", id, elsDocBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type FileMongoDoc struct {
+	Id   primitive.ObjectID `bson:"_id"`
+	Name string             `bson:"name"`
+	Path string             `bson:"path"`
+}
+
+func findMongoDoc(id string) (*FileMongoDoc, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelFunc()
+
+	var doc FileMongoDoc
+	err = mongo.FileColl().FindOne(ctx, bson.M{"_id": oid}).Decode(&doc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &doc, nil
+}
+
 // ReadFile returns a buffered reader to the file
-func ReadFile(f *FileElsDoc) (*os.File, int64, error) {
-	file, err := os.Open(f.Path)
+func ReadFile(fileDoc *FileElsDoc) (*os.File, int64, error) {
+	f, err := os.Open(fileDoc.Path)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	finfo, err := file.Stat()
+	finfo, err := f.Stat()
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return file, finfo.Size(), nil
+	return f, finfo.Size(), nil
 }

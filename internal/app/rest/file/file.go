@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	filemodel "github.com/khanhpdt/bookmark-api/internal/app/model/file"
 	"github.com/khanhpdt/bookmark-api/internal/app/repo/filerepo"
 )
 
@@ -18,6 +19,7 @@ func Setup(r *gin.Engine) {
 	r.POST("/files/search", searchFiles)
 	r.GET("/files/:fileID", findFile)
 	r.DELETE("/files/:fileID", deleteFile)
+	r.PUT("/files/:fileID", editFile)
 	r.GET("/files/:fileID/download", downloadFile)
 }
 
@@ -66,6 +68,25 @@ func deleteFile(c *gin.Context) {
 	fileID := c.Param("fileID")
 
 	err := filerepo.DeleteByID(fileID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, "")
+}
+
+func editFile(c *gin.Context) {
+	fileID := c.Param("fileID")
+
+	var updateReq filemodel.UpdateRequest
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err := filerepo.UpdateByID(fileID, updateReq)
+
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
