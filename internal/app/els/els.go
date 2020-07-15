@@ -62,6 +62,10 @@ func createIndexFile() {
 				"path": {
 					"type":   		"keyword",
 					"normalizer": "lowercase_normalizer"
+				},
+				"tags": {
+					"type":   		"keyword",
+					"normalizer": "lowercase_normalizer"
 				}
 			}
 		}

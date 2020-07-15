@@ -113,6 +113,7 @@ type FileElsDoc struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Path string `json:"path"`
+	Tags string `json:"tags"`
 }
 
 // FileSearchResult represents the result when searching files.
@@ -206,11 +207,22 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelFunc()
 
-	_, err = mongo.FileColl().UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{"name": update.Name}})
+	query := bson.M{"_id": oid}
+	updateObj := bson.M{"$set": bson.M{"name": update.Name, "tags": update.Tags}}
+	_, err = mongo.FileColl().UpdateOne(ctx, query, updateObj)
 	if err != nil {
 		return err
 	}
 
+	err = reindex("file", id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func reindex(indexName, id string) error {
 	doc, err := findMongoDoc(id)
 	if err != nil {
 		return err
@@ -220,6 +232,7 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 		ID:   doc.Id.Hex(),
 		Name: doc.Name,
 		Path: doc.Path,
+		Tags: doc.Tags,
 	}
 
 	elsDocBytes, err := json.Marshal(elsDoc)
@@ -227,7 +240,7 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 		return err
 	}
 
-	err = els.Index("file", id, elsDocBytes)
+	err = els.Index(indexName, id, elsDocBytes)
 	if err != nil {
 		return err
 	}
@@ -239,6 +252,7 @@ type FileMongoDoc struct {
 	Id   primitive.ObjectID `bson:"_id"`
 	Name string             `bson:"name"`
 	Path string             `bson:"path"`
+	Tags string             `bson:"tags"`
 }
 
 func findMongoDoc(id string) (*FileMongoDoc, error) {
