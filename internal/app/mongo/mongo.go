@@ -44,3 +44,11 @@ func Init() {
 func FileColl() *mongo.Collection {
 	return client.Database(dbName).Collection("file")
 }
+
+func TagColl() *mongo.Collection {
+	return client.Database(dbName).Collection("tag")
+}
+
+func DefaultCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 5*time.Second)
+}

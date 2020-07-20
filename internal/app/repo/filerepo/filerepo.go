@@ -1,7 +1,6 @@
 package filerepo
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/khanhpdt/bookmark-api/internal/app/els"
@@ -15,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 // SaveUploadedFiles saves files to disk and database.
@@ -85,7 +83,7 @@ func saveFileToDisk(f *multipart.FileHeader, filePath string) error {
 }
 
 func saveFileDocument(fileName, filePath string) error {
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
 	id := primitive.NewObjectID()
@@ -177,7 +175,7 @@ func FindByID(id string) (*FileElsDoc, error) {
 }
 
 func DeleteByID(id string) error {
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -204,7 +202,7 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 		return err
 	}
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
 	query := bson.M{"_id": oid}
@@ -261,7 +259,7 @@ func findMongoDoc(id string) (*FileMongoDoc, error) {
 		return nil, err
 	}
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
 	var doc FileMongoDoc

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	fileApi "github.com/khanhpdt/bookmark-api/internal/app/rest/file"
+	tagApi "github.com/khanhpdt/bookmark-api/internal/app/rest/tag"
 )
 
 // Init initializes REST APIs.
@@ -32,4 +33,5 @@ func Init() {
 
 func setupApis(r *gin.Engine) {
 	fileApi.Setup(r)
+	tagApi.Setup(r)
 }
