@@ -108,10 +108,10 @@ func saveFileDocument(fileName, filePath string) error {
 
 // FileElsDoc represents file document in ELS.
 type FileElsDoc struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
-	Tags string `json:"tags"`
+	ID   string   `json:"id"`
+	Name string   `json:"name"`
+	Path string   `json:"path"`
+	Tags []string `json:"tags"`
 }
 
 // FileSearchResult represents the result when searching files.
@@ -165,10 +165,10 @@ func FindByID(id string) (*FileElsDoc, error) {
 	}
 
 	if len(docs) == 0 {
-		return nil, fmt.Errorf("File %s not found", id)
+		return nil, fmt.Errorf("file %s not found", id)
 	}
 	if len(docs) > 1 {
-		return nil, fmt.Errorf("Duplicated files for id %s", id)
+		return nil, fmt.Errorf("duplicated files for id %s", id)
 	}
 
 	return docs[0], nil
@@ -209,11 +209,13 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 	updateObj := bson.M{"$set": bson.M{"name": update.Name, "tags": update.Tags}}
 	_, err = mongo.FileColl().UpdateOne(ctx, query, updateObj)
 	if err != nil {
+		log.Printf("error saving file to mongo: %s", err)
 		return err
 	}
 
 	err = reindex("file", id)
 	if err != nil {
+		log.Printf("error reindexing file: %s", err)
 		return err
 	}
 
@@ -250,7 +252,7 @@ type FileMongoDoc struct {
 	Id   primitive.ObjectID `bson:"_id"`
 	Name string             `bson:"name"`
 	Path string             `bson:"path"`
-	Tags string             `bson:"tags"`
+	Tags []string           `bson:"tags"`
 }
 
 func findMongoDoc(id string) (*FileMongoDoc, error) {

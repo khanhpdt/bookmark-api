@@ -12,10 +12,10 @@ import (
 func Setup(r *gin.Engine) {
 	log.Printf("Setting up /tags APIs...")
 
-	r.GET("/tags", findTags)
+	r.GET("/tags/suggestions", suggestTags)
 }
 
-func findTags(c *gin.Context) {
+func suggestTags(c *gin.Context) {
 	res, err := tagrepo.FindTags()
 
 	if err != nil {
