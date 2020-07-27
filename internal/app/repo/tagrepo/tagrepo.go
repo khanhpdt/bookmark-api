@@ -3,6 +3,7 @@ package tagrepo
 import (
 	"github.com/khanhpdt/bookmark-api/internal/app/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Tag struct {
@@ -17,11 +18,11 @@ type TagMongoDoc struct {
 	Name string `bson:"name"`
 }
 
-func FindTags() (*TagList, error) {
+func SuggestTags() (*TagList, error) {
 	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
-	cursor, err := mongo.TagColl().Find(ctx, bson.M{})
+	cursor, err := mongo.TagColl().Find(ctx, bson.M{"fileCount": bson.M{"$gt": 0}})
 
 	if err != nil {
 		return nil, err
@@ -48,4 +49,58 @@ func FindTags() (*TagList, error) {
 		tagList.List = tags
 	}
 	return &tagList, nil
+}
+
+func UpdateTagsFromFile(currentTags, newTags []string) error {
+	toAdd := filter(newTags, func(s string) bool {
+		return !include(currentTags, s)
+	})
+
+	toRemove := filter(currentTags, func(s string) bool {
+		return !include(newTags, s)
+	})
+
+	ctx, cancelFunc := mongo.DefaultCtx()
+	defer cancelFunc()
+
+	if len(toAdd) > 0 {
+		query := bson.M{"name": bson.M{"$in": toAdd}}
+		updateObj := bson.M{"$inc": bson.M{"fileCount": 1}}
+		upsert := true
+		opts := options.UpdateOptions{Upsert: &upsert}
+
+		if _, err := mongo.TagColl().UpdateMany(ctx, query, updateObj, &opts); err != nil {
+			return err
+		}
+	}
+
+	if len(toRemove) > 0 {
+		query := bson.M{"name": bson.M{"$in": toRemove}, "fileCount": bson.M{"$gt": 0}}
+		updateObj := bson.M{"$inc": bson.M{"fileCount": -1}}
+
+		if _, err := mongo.TagColl().UpdateMany(ctx, query, updateObj); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func include(arr []string, item string) bool {
+	for _, v := range arr {
+		if v == item {
+			return true
+		}
+	}
+	return false
+}
+
+func filter(arr []string, pred func(string) bool) []string {
+	res := make([]string, 0)
+	for _, v := range arr {
+		if pred(v) {
+			res = append(res, v)
+		}
+	}
+	return res
 }

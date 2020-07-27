@@ -16,7 +16,7 @@ func Setup(r *gin.Engine) {
 }
 
 func suggestTags(c *gin.Context) {
-	res, err := tagrepo.FindTags()
+	res, err := tagrepo.SuggestTags()
 
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())

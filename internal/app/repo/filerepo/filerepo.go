@@ -6,6 +6,7 @@ import (
 	"github.com/khanhpdt/bookmark-api/internal/app/els"
 	filemodel "github.com/khanhpdt/bookmark-api/internal/app/model/file"
 	"github.com/khanhpdt/bookmark-api/internal/app/mongo"
+	tagrepo "github.com/khanhpdt/bookmark-api/internal/app/repo/tagrepo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
@@ -205,6 +206,12 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
+	currentFile, err := findMongoDoc(id)
+	if err != nil {
+		log.Printf("error reading file %s from mongo: %s", id, err)
+		return err
+	}
+
 	query := bson.M{"_id": oid}
 	updateObj := bson.M{"$set": bson.M{"name": update.Name, "tags": update.Tags}}
 	_, err = mongo.FileColl().UpdateOne(ctx, query, updateObj)
@@ -216,6 +223,12 @@ func UpdateByID(id string, update filemodel.UpdateRequest) error {
 	err = reindex("file", id)
 	if err != nil {
 		log.Printf("error reindexing file: %s", err)
+		return err
+	}
+
+	err = tagrepo.UpdateTagsFromFile(currentFile.Tags, update.Tags)
+	if err != nil {
+		log.Printf("error updating tags from file %s: %s", id, err)
 		return err
 	}
 
