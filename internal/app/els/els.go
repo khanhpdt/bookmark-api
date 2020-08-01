@@ -21,23 +21,23 @@ func Init() {
 	cfg := elastic.Config{Addresses: []string{"http://localhost:9200"}}
 	es7, err := elastic.NewClient(cfg)
 	if err != nil {
-		log.Fatalf("Error connecting to ElasticSearch at %s: %s", cfg.Addresses, err)
+		log.Fatalf("error connecting to ElasticSearch at %s: %s", cfg.Addresses, err)
 	}
 
-	log.Printf("Connected to ElasticSearch at %s.", cfg.Addresses)
+	log.Printf("connected to ElasticSearch at %s.", cfg.Addresses)
 	es = es7
 
-	exist, err := checkIndexExist("file")
+	exist, err := checkIndexExist("book")
 	if err != nil {
-		log.Fatalf("Error when checking index exist: %s", err)
+		log.Fatalf("error checking index exist: %s", err)
 	}
 	if !exist {
-		log.Print("Creating index [file]...")
-		createIndexFile()
+		log.Print("creating index [book]...")
+		createIndexBook()
 	}
 }
 
-func createIndexFile() {
+func createIndexBook() {
 	body := `{
 		"settings": {
 			"analysis": {
@@ -55,11 +55,11 @@ func createIndexFile() {
 				"id": {
 					"type": "keyword"
 				},
-				"name": {
+				"title": {
 					"type":     "text",
 					"analyzer": "standard"
 				},
-				"path": {
+				"filePath": {
 					"type":   		"keyword",
 					"normalizer": "lowercase_normalizer"
 				},
@@ -72,7 +72,7 @@ func createIndexFile() {
 	}`
 
 	req := esapi.IndicesCreateRequest{
-		Index: "file",
+		Index: "book",
 		Body:  strings.NewReader(body),
 	}
 
@@ -81,17 +81,17 @@ func createIndexFile() {
 
 	res, err := req.Do(ctx, es)
 	if err != nil {
-		log.Fatalf("Error creating index [file]: %s", err)
+		log.Fatalf("Error creating index [book]: %s", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
 		b := new(bytes.Buffer)
 		b.ReadFrom(res.Body)
-		log.Fatalf("Error creating index [file]: %s", b)
+		log.Fatalf("Error creating index [book]: %s", b)
 	}
 
-	log.Print("Index [file] created.")
+	log.Print("Index [book] created.")
 }
 
 func defaultContext() (context.Context, context.CancelFunc) {

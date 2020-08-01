@@ -20,29 +20,29 @@ const (
 
 // Init initializes connection to mongodb.
 func Init() {
-	log.Println("Setting up mongodb connection...")
+	log.Println("setting up mongodb connection...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	c, err := mongo.Connect(ctx, options.Client().ApplyURI(fmt.Sprintf("mongodb://%s", mongoAddress)))
 	if err != nil {
-		panic(fmt.Sprintf("Error connecting to mongodb at %s", mongoAddress))
+		panic(fmt.Sprintf("error connecting to mongodb at %s", mongoAddress))
 	}
 
 	client = c
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
-		panic(fmt.Sprintf("Error checking connection to mongodb at %s", mongoAddress))
+		panic(fmt.Sprintf("error checking connection to mongodb at %s", mongoAddress))
 	}
 
-	log.Printf("Successfully connected to mongodb at %s", mongoAddress)
+	log.Printf("successfully connected to mongodb at %s", mongoAddress)
 }
 
-// FileColl returns the 'file' collection
-func FileColl() *mongo.Collection {
-	return client.Database(dbName).Collection("file")
+// BookColl returns the 'book' collection
+func BookColl() *mongo.Collection {
+	return client.Database(dbName).Collection("book")
 }
 
 func TagColl() *mongo.Collection {

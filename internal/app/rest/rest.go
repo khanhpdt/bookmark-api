@@ -6,7 +6,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	fileApi "github.com/khanhpdt/bookmark-api/internal/app/rest/file"
+	bookApi "github.com/khanhpdt/bookmark-api/internal/app/rest/book"
 	tagApi "github.com/khanhpdt/bookmark-api/internal/app/rest/tag"
 )
 
@@ -28,10 +28,12 @@ func Init() {
 
 	setupApis(r)
 
-	r.Run(":8081") // listen and serve on 0.0.0.0:8081
+	err := r.Run(":8081") // listen and serve on 0.0.0.0:8081
+
+	log.Fatalf("error starting gin on port 8081 %s", err)
 }
 
 func setupApis(r *gin.Engine) {
-	fileApi.Setup(r)
+	bookApi.Setup(r)
 	tagApi.Setup(r)
 }

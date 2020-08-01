@@ -22,7 +22,7 @@ func SuggestTags() (*TagList, error) {
 	ctx, cancelFunc := mongo.DefaultCtx()
 	defer cancelFunc()
 
-	cursor, err := mongo.TagColl().Find(ctx, bson.M{"fileCount": bson.M{"$gt": 0}})
+	cursor, err := mongo.TagColl().Find(ctx, bson.M{"bookCount": bson.M{"$gt": 0}})
 
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func SuggestTags() (*TagList, error) {
 	return &tagList, nil
 }
 
-func UpdateTagsFromFile(currentTags, newTags []string) error {
+func UpdateTags(currentTags, newTags []string) error {
 	toAdd := filter(newTags, func(s string) bool {
 		return !include(currentTags, s)
 	})
@@ -65,7 +65,7 @@ func UpdateTagsFromFile(currentTags, newTags []string) error {
 
 	if len(toAdd) > 0 {
 		query := bson.M{"name": bson.M{"$in": toAdd}}
-		updateObj := bson.M{"$inc": bson.M{"fileCount": 1}}
+		updateObj := bson.M{"$inc": bson.M{"bookCount": 1}}
 		upsert := true
 		opts := options.UpdateOptions{Upsert: &upsert}
 
@@ -75,8 +75,8 @@ func UpdateTagsFromFile(currentTags, newTags []string) error {
 	}
 
 	if len(toRemove) > 0 {
-		query := bson.M{"name": bson.M{"$in": toRemove}, "fileCount": bson.M{"$gt": 0}}
-		updateObj := bson.M{"$inc": bson.M{"fileCount": -1}}
+		query := bson.M{"name": bson.M{"$in": toRemove}, "bookCount": bson.M{"$gt": 0}}
+		updateObj := bson.M{"$inc": bson.M{"bookCount": -1}}
 
 		if _, err := mongo.TagColl().UpdateMany(ctx, query, updateObj); err != nil {
 			return err
